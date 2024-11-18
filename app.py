@@ -4,7 +4,6 @@ import streamlit as st
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.image import img_to_array
 import warnings
-import time
 
 # Suppress specific warning
 warnings.filterwarnings("ignore", message="The use_column_width parameter has been deprecated")
