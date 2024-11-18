@@ -1,9 +1,11 @@
 import cv2
 import numpy as np
 import streamlit as st
+import streamlit.components.v1 as components
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.image import img_to_array
 import warnings
+import time
 
 # Suppress specific warning
 warnings.filterwarnings("ignore", message="The use_column_width parameter has been deprecated")
@@ -67,6 +69,21 @@ else:
     st.header("Real-Time Emotion Detection")
     st.write("Click 'Start Detection' to begin real-time emotion detection. This feature may take time to load.")
 
+    # Embed JS to request camera permission without turning on the camera
+    components.html("""
+    <script>
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(function(stream) {
+                console.log("Camera access requested");
+                // Don't actually use the stream, just request access
+                stream.getTracks().forEach(track => track.stop()); // Stop the stream immediately after granting access
+            })
+            .catch(function(error) {
+                console.log("Camera access denied", error);
+            });
+    </script>
+    """, height=0)
+
     # Button to toggle start/stop detection
     if 'is_detecting' not in st.session_state:
         st.session_state.is_detecting = False
@@ -75,13 +92,15 @@ else:
         st.session_state.is_detecting = not st.session_state.is_detecting
 
     if st.session_state.is_detecting:
-        # Use Streamlit's camera input widget to get the video stream
-        video_input = st.camera_input("Start Camera")
+        cap = cv2.VideoCapture(0)
+        frame_placeholder = st.empty()
+        st.write("Real-time detection started. Press the same button to stop.")
 
-        if video_input is not None:
-            # Convert the image captured by Streamlit to an OpenCV format
-            frame = np.array(bytearray(video_input.read()), dtype=np.uint8)
-            frame = cv2.imdecode(frame, cv2.IMREAD_COLOR)
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                st.write("Failed to grab frame.")
+                break
 
             # Convert to grayscale for face detection
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -91,7 +110,7 @@ else:
                 # Display a message when no face is detected
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 cv2.putText(frame_rgb, "No face detected", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 0, 0), 3, cv2.LINE_AA)
-                st.image(frame_rgb, channels="RGB", use_container_width=True)
+                frame_placeholder.image(frame_rgb, use_container_width=True)
             else:
                 for (x, y, w, h) in faces:
                     cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
@@ -112,7 +131,13 @@ else:
 
                 # Display the frame in Streamlit app
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                st.image(frame_rgb, channels="RGB", use_container_width=True)
+                frame_placeholder.image(frame_rgb, use_container_width=True)
 
-        else:
-            st.warning("Please enable the camera to begin detection.")
+            time.sleep(0.05)
+
+            # Stop detection if the button is pressed again
+            if not st.session_state.is_detecting:
+                break
+
+        cap.release()
+        frame_placeholder.empty()
