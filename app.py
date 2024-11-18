@@ -76,57 +76,44 @@ else:
         st.session_state.is_detecting = not st.session_state.is_detecting
 
     if st.session_state.is_detecting:
-        # Create a cv2 VideoCapture object for real-time detection
-        cap = cv2.VideoCapture(0)
+        # Use Streamlit's camera input widget to get the video stream
+        video_input = st.camera_input("Start Camera")
 
-        if not cap.isOpened():
-            st.error("Camera could not be opened. Please check if your camera is accessible.")
+        if video_input is not None:
+            # Convert the image captured by Streamlit to an OpenCV format
+            frame = np.array(bytearray(video_input.read()), dtype=np.uint8)
+            frame = cv2.imdecode(frame, cv2.IMREAD_COLOR)
+
+            # Convert to grayscale for face detection
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+
+            if len(faces) == 0:
+                # Display a message when no face is detected
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                cv2.putText(frame_rgb, "No face detected", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 0, 0), 3, cv2.LINE_AA)
+                st.image(frame_rgb, channels="RGB", use_container_width=True)
+            else:
+                for (x, y, w, h) in faces:
+                    cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                    face = frame[y:y + h, x:x + w]
+                    face_resized = cv2.resize(face, (96, 96))
+                    face_resized = cv2.cvtColor(face_resized, cv2.COLOR_BGR2RGB)
+                    face_resized = img_to_array(face_resized)
+                    face_resized = np.expand_dims(face_resized, axis=0) / 255.0
+
+                    # Predict the emotion
+                    prediction = model.predict(face_resized)
+                    max_index = np.argmax(prediction[0])
+                    emotion = class_labels[max_index]
+
+                    # Display the emotion label on the frame
+                    label_position = (x, y - 10)
+                    cv2.putText(frame, emotion, label_position, cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 0), 3, cv2.LINE_AA)
+
+                # Display the frame in Streamlit app
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                st.image(frame_rgb, channels="RGB", use_container_width=True)
+
         else:
-            frame_placeholder = st.empty()
-            st.write("Real-time detection started. Press the same button to stop.")
-
-            while cap.isOpened():
-                ret, frame = cap.read()
-                if not ret:
-                    st.write("Failed to grab frame.")
-                    break
-
-                # Convert to grayscale for face detection
-                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
-
-                if len(faces) == 0:
-                    # Display a message when no face is detected
-                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    cv2.putText(frame_rgb, "No face detected", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 0, 0), 3, cv2.LINE_AA)
-                    frame_placeholder.image(frame_rgb, use_container_width=True)
-                else:
-                    for (x, y, w, h) in faces:
-                        cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
-                        face = frame[y:y + h, x:x + w]
-                        face_resized = cv2.resize(face, (96, 96))
-                        face_resized = cv2.cvtColor(face_resized, cv2.COLOR_BGR2RGB)
-                        face_resized = img_to_array(face_resized)
-                        face_resized = np.expand_dims(face_resized, axis=0) / 255.0
-
-                        # Predict the emotion
-                        prediction = model.predict(face_resized)
-                        max_index = np.argmax(prediction[0])
-                        emotion = class_labels[max_index]
-
-                        # Display the emotion label on the frame
-                        label_position = (x, y - 10)
-                        cv2.putText(frame, emotion, label_position, cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 0), 3, cv2.LINE_AA)
-
-                    # Display the frame in Streamlit app
-                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    frame_placeholder.image(frame_rgb, use_container_width=True)
-
-                time.sleep(0.05)
-
-                # Stop detection if the button is pressed again
-                if not st.session_state.is_detecting:
-                    break
-
-            cap.release()
-            frame_placeholder.empty()
+            st.warning("Please enable the camera to begin detection.")
