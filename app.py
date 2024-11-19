@@ -17,9 +17,9 @@ class_labels = ['Happy', 'Sad', 'Surprise', 'Neutral']
 # Load Haar Cascade for face detection
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
-# Video capture objects
+# Video capture object
 camera = None
-stream_active = False
+
 
 def detect_faces_and_emotions(image):
     """
@@ -49,10 +49,12 @@ def detect_faces_and_emotions(image):
         max_index = np.argmax(prediction[0])
         detected_emotion = class_labels[max_index]
 
+        # Add emotion label above the rectangle
         label_position = (x, y - 10)
         cv2.putText(image, detected_emotion, label_position, cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
     return image, detected_emotion
+
 
 @app.route('/')
 def index():
@@ -60,6 +62,7 @@ def index():
     Render the home page.
     """
     return render_template('index.html')
+
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
@@ -86,24 +89,26 @@ def upload():
 
     return render_template('upload.html', emotion=None)
 
+
 @app.route('/real_time')
 def real_time():
     """
     Render the Real-Time Detection page.
     """
-    global stream_active
-    return render_template('real_time.html', stream=stream_active)
+    return render_template('real_time.html', stream=False)
+
 
 @app.route('/start', methods=['POST'])
 def start_detection():
     """
     Start real-time emotion detection.
     """
-    global camera, stream_active
+    global camera
     if camera is None:
         camera = cv2.VideoCapture(0)
-        stream_active = True
-    return render_template('real_time.html', stream=stream_active)
+
+    return render_template('real_time.html', stream=True)
+
 
 @app.route('/video_feed')
 def video_feed():
@@ -132,18 +137,19 @@ def video_feed():
 
     return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
+
 @app.route('/stop', methods=['POST'])
 def stop_detection():
     """
     Stop real-time emotion detection and release the camera.
     """
-    global camera, stream_active
+    global camera
     if camera:
         camera.release()
         camera = None
-        stream_active = False
-    return render_template('real_time.html', stream=stream_active)
+
+    return redirect(url_for('real_time'))
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)
