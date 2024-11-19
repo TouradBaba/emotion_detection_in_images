@@ -1,143 +1,149 @@
+from flask import Flask, render_template, Response, request, redirect, url_for
 import cv2
 import numpy as np
-import streamlit as st
-import streamlit.components.v1 as components
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.image import img_to_array
-import warnings
-import time
+import base64
 
-# Suppress specific warning
-warnings.filterwarnings("ignore", message="The use_column_width parameter has been deprecated")
+# Initialize Flask app
+app = Flask(__name__)
 
 # Load the trained model
 model = load_model('Models/model.h5')
 
-# The class labels
+# Class labels
 class_labels = ['Happy', 'Sad', 'Surprise', 'Neutral']
 
-# Load the Haar cascade for face detection
-face_cascade = cv2.CascadeClassifier(
-    cv2.samples.findFile(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'))
+# Load Haar Cascade for face detection
+face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
-# Streamlit app layout
-st.set_page_config(page_title="Emotion Detection App", page_icon="static/icon.png")
-st.title("Emotion Detection App")
-st.write("This app lets you detect emotions from an uploaded image or real-time camera feed.")
+# Video capture objects
+camera = None
+stream_active = False
 
-# Sidebar for navigation
-st.sidebar.title("Navigation")
-page = st.sidebar.radio("Choose a page:", ("Upload Image", "Real-Time Detection"))
+def detect_faces_and_emotions(image):
+    """
+    Detect faces in the image, predict their emotions, and draw bounding boxes.
+    Returns the processed image and the detected emotion.
+    """
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
 
-if page == "Upload Image":
-    st.header("Upload an Image")
+    if len(faces) == 0:
+        return image, "No face detected"
 
-    # Image upload section
-    uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
-    if uploaded_file is not None:
-        file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
-        image = cv2.imdecode(file_bytes, 1)
+    detected_emotion = None
+    for (x, y, w, h) in faces:
+        # Draw a rectangle around the face
+        cv2.rectangle(image, (x, y), (x + w, y + h), (255, 0, 0), 2)
 
-        # Detect faces
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+        # Extract the face and preprocess for the model
+        face = image[y:y + h, x:x + w]
+        face_resized = cv2.resize(face, (96, 96))
+        face_resized = cv2.cvtColor(face_resized, cv2.COLOR_BGR2RGB)
+        face_resized = img_to_array(face_resized)
+        face_resized = np.expand_dims(face_resized, axis=0) / 255.0
 
-        if len(faces) == 0:
-            st.subheader("No face detected in the uploaded image.")
-        else:
-            for (x, y, w, h) in faces:
-                cv2.rectangle(image, (x, y), (x + w, y + h), (255, 0, 0), 2)
-                face = image[y:y + h, x:x + w]
-                face_resized = cv2.resize(face, (96, 96))
-                face_resized = cv2.cvtColor(face_resized, cv2.COLOR_BGR2RGB)
-                face_resized = img_to_array(face_resized)
-                face_resized = np.expand_dims(face_resized, axis=0) / 255.0
+        # Predict emotion
+        prediction = model.predict(face_resized)
+        max_index = np.argmax(prediction[0])
+        detected_emotion = class_labels[max_index]
 
-                # Predict emotion
-                prediction = model.predict(face_resized)
-                max_index = np.argmax(prediction[0])
-                emotion = class_labels[max_index]
+        label_position = (x, y - 10)
+        cv2.putText(image, detected_emotion, label_position, cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-                # Add label text above the image
-                label_position = (x, y - 10)
-                cv2.putText(image, emotion, label_position, cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3, cv2.LINE_AA)
+    return image, detected_emotion
 
-            st.subheader(f"Detected Emotion: {emotion}")
-            st.image(image, channels="BGR", use_container_width=True)
+@app.route('/')
+def index():
+    """
+    Render the home page.
+    """
+    return render_template('index.html')
 
-else:
-    st.header("Real-Time Emotion Detection")
-    st.write("Click 'Start Detection' to begin real-time emotion detection. This feature may take time to load.")
+@app.route('/upload', methods=['GET', 'POST'])
+def upload():
+    """
+    Handle image upload and display the detected emotion.
+    """
+    if request.method == 'POST':
+        file = request.files['image']
+        if not file:
+            return redirect(url_for('upload'))
 
-    # Embed JS to request camera permission without turning on the camera
-    components.html("""
-    <script>
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(function(stream) {
-                console.log("Camera access requested");
-                // Don't actually use the stream, just request access
-                stream.getTracks().forEach(track => track.stop()); // Stop the stream immediately after granting access
-            })
-            .catch(function(error) {
-                console.log("Camera access denied", error);
-            });
-    </script>
-    """, height=0)
+        # Read the uploaded file and convert to numpy array
+        file_bytes = np.asarray(bytearray(file.read()), dtype=np.uint8)
+        image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
 
-    # Button to toggle start/stop detection
-    if 'is_detecting' not in st.session_state:
-        st.session_state.is_detecting = False
+        # Detect faces and emotions
+        processed_image, emotion = detect_faces_and_emotions(image)
 
-    if st.button("Start/Stop Detection"):
-        st.session_state.is_detecting = not st.session_state.is_detecting
+        # Convert image to base64 for rendering in HTML
+        _, buffer = cv2.imencode('.jpg', processed_image)
+        image_base64 = base64.b64encode(buffer).decode('utf-8')
 
-    if st.session_state.is_detecting:
-        cap = cv2.VideoCapture(0)
-        frame_placeholder = st.empty()
-        st.write("Real-time detection started. Press the same button to stop.")
+        return render_template('upload.html', emotion=emotion, image=image_base64)
 
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                st.write("Failed to grab frame.")
+    return render_template('upload.html', emotion=None)
+
+@app.route('/real_time')
+def real_time():
+    """
+    Render the Real-Time Detection page.
+    """
+    global stream_active
+    return render_template('real_time.html', stream=stream_active)
+
+@app.route('/start', methods=['POST'])
+def start_detection():
+    """
+    Start real-time emotion detection.
+    """
+    global camera, stream_active
+    if camera is None:
+        camera = cv2.VideoCapture(0)
+        stream_active = True
+    return render_template('real_time.html', stream=stream_active)
+
+@app.route('/video_feed')
+def video_feed():
+    """
+    Generate frames for the video feed.
+    """
+    global camera
+
+    if camera is None:
+        camera = cv2.VideoCapture(0)
+
+    def gen_frames():
+        while True:
+            success, frame = camera.read()
+            if not success:
                 break
 
-            # Convert to grayscale for face detection
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+            # Detect faces and emotions
+            frame, _ = detect_faces_and_emotions(frame)
 
-            if len(faces) == 0:
-                # Display a message when no face is detected
-                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                cv2.putText(frame_rgb, "No face detected", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 0, 0), 3, cv2.LINE_AA)
-                frame_placeholder.image(frame_rgb, use_container_width=True)
-            else:
-                for (x, y, w, h) in faces:
-                    cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
-                    face = frame[y:y + h, x:x + w]
-                    face_resized = cv2.resize(face, (96, 96))
-                    face_resized = cv2.cvtColor(face_resized, cv2.COLOR_BGR2RGB)
-                    face_resized = img_to_array(face_resized)
-                    face_resized = np.expand_dims(face_resized, axis=0) / 255.0
+            # Encode the frame for streaming
+            _, buffer = cv2.imencode('.jpg', frame)
+            frame = buffer.tobytes()
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
-                    # Predict the emotion
-                    prediction = model.predict(face_resized)
-                    max_index = np.argmax(prediction[0])
-                    emotion = class_labels[max_index]
+    return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-                    # Display the emotion label on the frame
-                    label_position = (x, y - 10)
-                    cv2.putText(frame, emotion, label_position, cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 0), 3, cv2.LINE_AA)
+@app.route('/stop', methods=['POST'])
+def stop_detection():
+    """
+    Stop real-time emotion detection and release the camera.
+    """
+    global camera, stream_active
+    if camera:
+        camera.release()
+        camera = None
+        stream_active = False
+    return render_template('real_time.html', stream=stream_active)
 
-                # Display the frame in Streamlit app
-                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                frame_placeholder.image(frame_rgb, use_container_width=True)
 
-            time.sleep(0.05)
-
-            # Stop detection if the button is pressed again
-            if not st.session_state.is_detecting:
-                break
-
-        cap.release()
-        frame_placeholder.empty()
+if __name__ == '__main__':
+    app.run()

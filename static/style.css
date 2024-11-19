@@ -1,0 +1,108 @@
+/* Body Background and General Layout */
+body {
+    background-color: #f8f9fa;
+    font-family: 'Arial', sans-serif;
+}
+
+.container {
+    margin-top: 50px;
+}
+
+/* Image Container for the Emotion Display */
+.emotion-card {
+    background: #ffffff;
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.emotion-badge {
+    padding: 10px 15px;
+    background-color: #e0f7fa;
+    border-radius: 25px;
+    color: #00796b;
+    font-size: 18px;
+    font-weight: bold;
+    text-transform: uppercase;
+    display: inline-block;
+}
+
+.emotion-text {
+    font-size: 24px;
+}
+
+.fade-in {
+    animation: fadeIn 2s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Input & Button Styling */
+.form-control-lg {
+    border-radius: 10px;
+    padding: 15px;
+}
+
+.btn-lg {
+    padding: 15px 30px;
+    font-size: 18px;
+    border-radius: 25px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary {
+    background-color: #00796b;
+    border-color: #00796b;
+    transition: all 0.3s;
+}
+
+.btn-primary:hover {
+    background-color: #004d40;
+    border-color: #004d40;
+}
+
+/* Card Styling */
+.shadow-lg {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.rounded {
+    border-radius: 15px;
+}
+
+img {
+    max-width: 100%;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Media Query for Responsiveness */
+@media (max-width: 767px) {
+    .emotion-card {
+        padding: 15px;
+    }
+
+    .btn-lg {
+        width: 100%;
+        padding: 12px;
+    }
+
+    .container {
+        margin-top: 30px;
+    }
+}
+
+.home-icon {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+}
