@@ -50,8 +50,7 @@ setuptools==75.5.0
 six==1.16.0
 tensorboard
 tensorboard-data-server
-tensorflow
-tensorflow_intel
+tensorflow-cpu
 termcolor==2.5.0
 threadpoolctl==3.5.0
 typing_extensions==4.12.2
