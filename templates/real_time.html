@@ -28,6 +28,7 @@
                         Start real-time detection by clicking the button below.
                     {% endif %}
                 </p>
+                <p id="loadingMessage" class="text-muted">This feature may take a moment to open.</p>
                 <form action="{{ '/stop' if stream else '/start' }}" method="POST">
                     <button type="submit" class="btn {% if stream %}btn-danger{% else %}btn-primary{% endif %} btn-lg px-4 py-2">
                         <i class="fas {% if stream %}fa-stop{% else %}fa-video{% endif %}"></i>
@@ -49,5 +50,12 @@
     </div>
 
     <script src="https://kit.fontawesome.com/a076d05399.js"></script>
+    <script>
+        {% if stream %}
+            document.getElementById('loadingMessage').style.display = 'none';
+        {% else %}
+            document.getElementById('loadingMessage').style.display = 'block';
+        {% endif %}
+    </script>
 </body>
 </html>
