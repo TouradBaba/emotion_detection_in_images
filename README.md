@@ -1,4 +1,4 @@
-# **Emotion detection in images**
+# **Emotion Detection in Images**
 
 This repository hosts the code for a **Facial Emotion Recognition** app that identifies emotions (`Happy`, `Sad`, `Surprise`, and `Neutral`) from images and real-time video streams. The app utilizes a **VGG16 model fine-tuned** for emotion classification, **OpenCV** for image processing, **Haar cascades** for face detection, and a **Flask** backend with an **HTML/CSS** frontend.
 
@@ -9,6 +9,7 @@ This repository hosts the code for a **Facial Emotion Recognition** app that ide
 ```
 📁 Models         # Trained deep learning model
 📁 Notebooks      # Jupyter notebooks for data exploration, model training, and evaluation
+📁 Screenshots    # Screenshots of the application
 📁 static         # Static files (CSS and Icon)
 📁 templates      # HTML templates
 📄 .gitattributes # Git LFS configuration
@@ -18,7 +19,7 @@ This repository hosts the code for a **Facial Emotion Recognition** app that ide
 ```
 [Icon by Freepik](https://www.freepik.com/icon/smile_2383590)
 
---- 
+---
 
 ## **Dataset**
 
@@ -30,45 +31,22 @@ For this project, only the following four emotion classes were used: `Happy`, `S
 
 ---
 
-## **Methods and Techniques**
+## **Features**
 
-- **Data Augmentation**: Applied random transformations like rotation, flipping, and zooming to improve the model's generalization and diversify the training dataset.
-
-- **Overfitting Prevention**:
-  - **Dropout layers**: Added to prevent co-adaptation of neurons and reduce overfitting.
-  - **L2 Regularization**: Used in dense layers to penalize large weights.
-
-- **Batch Normalization**: Incorporated to stabilize training and accelerate convergence by normalizing intermediate layer outputs.
-
+### **Methods and Techniques**
+- **Data Augmentation**: Random transformations like rotation, flipping, and zooming to improve model generalization.
+- **Dropout Layers**: Prevent co-adaptation of neurons and reduce overfitting.
+- **L2 Regularization**: Penalizes large weights to encourage better generalization.
+- **Batch Normalization**: Stabilizes training by normalizing intermediate layer outputs.
 - **Callbacks**:
-  - **EarlyStopping**: Monitors validation accuracy and halts training when performance stops improving.
-  - **ReduceLROnPlateau**: Dynamically adjusts the learning rate to prevent stagnation.
+  - **EarlyStopping**: Stops training when validation performance ceases to improve.
+  - **ReduceLROnPlateau**: Dynamically adjusts learning rates.
   - **ModelCheckpoint**: Saves the best-performing model during training.
 
----
-
-## **Model Performance**
-
-The model achieves an overall classification accuracy of 79.9%, with detailed metrics:
-
-| **Emotion/Metric** | **Precision** | **Recall** | **F1-Score** | **Support** |  
-|--------------------|---------------|------------|--------------|-------------|  
-| **Happy**          | 0.91          | 0.89       | 0.90         | 1774        |  
-| **Sad**            | 0.69          | 0.76       | 0.72         | 1247        |  
-| **Surprise**       | 0.86          | 0.86       | 0.86         | 831         |  
-| **Neutral**        | 0.72          | 0.67       | 0.69         | 1233        |  
-
----
-
-## **User Interface**
-
-### **Tools Used**:
-- **Flask**: A Python web framework used for building the backend of the application. it handles image uploads, real-time video streams, and invokes the emotion recognition model. 
-- **HTML/CSS**: These are used for the frontend of the application. HTML structures the web pages and CSS is used to style them, to create a user-friendly interface for uploading images, streaming video, and displaying results.
-
-The UI consists of a **Home Page** from which users can navigate to the following pages:  
-  - **Real-Time Video Stream**: For live emotion recognition.  
-  - **Image Upload**: To upload an image and receive the detected emotion label.
+### **User Interface**
+The app features:
+- **Real-Time Video Stream**: Detect emotions live using your webcam.
+- **Image Upload**: Upload an image to detect emotions.
 
 ---
 
@@ -80,22 +58,75 @@ The UI consists of a **Home Page** from which users can navigate to the followin
    cd emotion_detection_in_images
    ```
 
-2. **Install Dependencies**:
+2. **Set Up a Virtual Environment** (Recommended):
+   ```bash
+   python -m venv env
+   env\Scripts\activate  # For Mac/Linux: source env/bin/activate
+   ```
+
+3. **Install Dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Run the Flask Application**:
+4. **Run the Flask Application**:
    ```bash
    python app.py
    ```
 
-4. **Access the Application**: 
+5. **Access the Application**:  
+   Open your web browser and go to:
+   ```
+   http://127.0.0.1:5000
+   ```
 
-    Once the Flask application is running, you can access it by navigating to the following address in your web browser:
-    
-    ```
-    http://127.0.0.1:5000
-    ```
+---
+
+## **Usage**
+
+### **Image Upload**
+1. Navigate to the **Upload** page from the home page.
+2. Upload an image (JPEG/PNG).
+3. The app will process the image, detect faces, and display the emotion labels.
+
+### **Real-Time Detection**
+1. Navigate to the **Real-Time Detection** page.
+2. Click "Start" to begin real-time emotion detection using your webcam.
+3. View emotions displayed on the live video feed.
+
+---
+
+## **Model Performance**
+
+The model achieves an overall classification accuracy of **79.9%**. Below is the detailed breakdown of performance metrics:
+
+| **Emotion/Metric** | **Precision** | **Recall** | **F1-Score** | **Support** |  
+|--------------------|---------------|------------|--------------|-------------|  
+| **Happy**          | 0.91          | 0.89       | 0.90         | 1774        |  
+| **Sad**            | 0.69          | 0.76       | 0.72         | 1247        |  
+| **Surprise**       | 0.86          | 0.86       | 0.86         | 831         |  
+| **Neutral**        | 0.72          | 0.67       | 0.69         | 1233        |  
+
+### **Explanation of Metrics**:
+- **Precision**: Precision measures how many of the predicted positive instances are actually positive. In the context of emotion detection, it indicates how many of the predicted emotions were correct for each category. A higher precision means fewer false positives.
+  
+- **Recall**: Recall, also known as sensitivity, measures how many actual positive instances were correctly predicted. It shows how well the model identifies all instances of a particular emotion. A higher recall means fewer false negatives.
+
+- **F1-Score**: The F1-score is the harmonic mean of precision and recall. It provides a balanced measure of the model’s performance, especially when dealing with imbalanced datasets. A higher F1-score indicates better overall performance in terms of both precision and recall.
+
+---
+
+## **Screenshots**
+
+### **Screenshots of the Three Pages**
+
+![Screenshots of the Three Pages](Screenshots/Screenshots_of_the_Three_Pages.png)
+
+---
+
+## **Code Style**
+The code follows **PEP 8 guidelines** and includes:
+- **Type Hinting**: Provides clarity about function inputs and outputs.
+- **Docstrings**: Descriptions of all functions and modules.
 
 ---

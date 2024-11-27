@@ -11,20 +11,26 @@ app = Flask(__name__)
 # Load the trained model
 model = load_model('Models/model.h5')
 
-# Class labels
+# Class labels for emotion detection
 class_labels = ['Happy', 'Sad', 'Surprise', 'Neutral']
 
 # Load Haar Cascade for face detection
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
-# Video capture object
+# Global variable for video capture object
 camera = None
 
 
-def detect_faces_and_emotions(image):
+def detect_faces_and_emotions(image: np.ndarray) -> tuple[np.ndarray, str]:
     """
-    Detect faces in the image, predict their emotions, and draw bounding boxes.
-    Returns the processed image and the detected emotion.
+    Detect faces in an image, predict their emotions, and draw bounding boxes around them.
+
+    Args:
+        image (np.ndarray): The input image in BGR format.
+
+    Returns:
+        tuple[np.ndarray, str]: The processed image with bounding boxes and labels,
+                                and the detected emotion label (or a default message).
     """
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
@@ -37,7 +43,7 @@ def detect_faces_and_emotions(image):
         # Draw a rectangle around the face
         cv2.rectangle(image, (x, y), (x + w, y + h), (255, 0, 0), 2)
 
-        # Extract the face and preprocess for the model
+        # Extract the face and preprocess it for the model
         face = image[y:y + h, x:x + w]
         face_resized = cv2.resize(face, (96, 96))
         face_resized = cv2.cvtColor(face_resized, cv2.COLOR_BGR2RGB)
@@ -57,17 +63,23 @@ def detect_faces_and_emotions(image):
 
 
 @app.route('/')
-def index():
+def index() -> str:
     """
     Render the home page.
+
+    Returns:
+        str: Rendered HTML template for the home page.
     """
     return render_template('index.html')
 
 
 @app.route('/upload', methods=['GET', 'POST'])
-def upload():
+def upload() -> str:
     """
     Handle image upload and display the detected emotion.
+
+    Returns:
+        str: Rendered HTML template with the detected emotion and processed image.
     """
     if request.method == 'POST':
         file = request.files['image']
@@ -91,17 +103,23 @@ def upload():
 
 
 @app.route('/real_time')
-def real_time():
+def real_time() -> str:
     """
     Render the Real-Time Detection page.
+
+    Returns:
+        str: Rendered HTML template for real-time emotion detection.
     """
     return render_template('real_time.html', stream=False)
 
 
 @app.route('/start', methods=['POST'])
-def start_detection():
+def start_detection() -> str:
     """
-    Start real-time emotion detection.
+    Start real-time emotion detection by initializing the camera.
+
+    Returns:
+        str: Rendered HTML template for real-time detection with video stream enabled.
     """
     global camera
     if camera is None:
@@ -111,9 +129,12 @@ def start_detection():
 
 
 @app.route('/video_feed')
-def video_feed():
+def video_feed() -> Response:
     """
-    Generate frames for the video feed.
+    Generate and stream video frames for real-time detection.
+
+    Returns:
+        Response: Streamed video feed with processed frames.
     """
     global camera
 
@@ -139,9 +160,12 @@ def video_feed():
 
 
 @app.route('/stop', methods=['POST'])
-def stop_detection():
+def stop_detection() -> str:
     """
     Stop real-time emotion detection and release the camera.
+
+    Returns:
+        str: Redirects to the Real-Time Detection page with streaming disabled.
     """
     global camera
     if camera:
