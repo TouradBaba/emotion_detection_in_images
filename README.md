@@ -127,4 +127,4 @@ The model achieves an overall classification accuracy of **79.9%**. Below is the
 ## **Code Style**
 The code follows **PEP 8 guidelines** and includes:
 - **Type Hinting**: Provides clarity about function inputs and outputs.
-- **Docstrings**: Descriptions of all functions and modules.
+- **Docstrings**: Descriptions of all functions.
